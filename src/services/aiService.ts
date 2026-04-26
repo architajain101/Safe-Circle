@@ -1,7 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { AIAnalysis } from "../types";
 
-const FALLBACK_KEY = "AIzaSyBlEydJMB-DaAy6mYJ4XtqvTt4-UnFb1RU";
 
 async function executeAI(modelName: string, parameters: any) {
   const primaryKey = process.env.GEMINI_API_KEY;
