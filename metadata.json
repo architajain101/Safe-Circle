@@ -1,0 +1,6 @@
+{
+  "name": "SafeCircle",
+  "description": "SafeCircle: Your Shield in the Digital Wild. A community-driven platform to report and identify abusive users, keeping our circles safe.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": []
+}

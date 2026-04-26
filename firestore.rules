@@ -1,0 +1,89 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // --- Entity Validations ---
+    
+    function isValidUser(data) {
+      return data.keys().hasAll(['displayName', 'photoURL', 'createdAt']) &&
+             data.keys().size() == 3 &&
+             data.displayName is string && data.displayName.size() <= 100 &&
+             data.photoURL is string && data.photoURL.size() <= 500 &&
+             data.createdAt is number;
+    }
+
+    function isValidReport(data) {
+      return data.keys().hasAll(['userId', 'targetValue', 'targetType', 'description', 'aiAnalysis', 'extractedText', 'consistencyFlag', 'createdAt']) &&
+             data.keys().size() >= 8 && data.keys().size() <= 12 &&
+             data.userId == request.auth.uid &&
+             data.targetValue is string && data.targetValue.size() <= 100 &&
+             data.targetType in ['phone', 'username'] &&
+             data.description is string && data.description.size() <= 10000 &&
+             data.createdAt is number &&
+             data.aiAnalysis is map &&
+             data.aiAnalysis.keys().hasAll(['type', 'severity', 'confidence']) &&
+             data.aiAnalysis.type is string &&
+             data.aiAnalysis.severity in ['low', 'medium', 'high'] &&
+             data.aiAnalysis.confidence is number &&
+             data.extractedText is string &&
+             data.consistencyFlag in ['consistent', 'inconsistent', 'verified'] &&
+             (!data.keys().hasAny(['imageUrl']) || (data.imageUrl is string && data.imageUrl.size() <= 1000000)) &&
+             (!data.keys().hasAny(['audioUrl']) || (data.audioUrl is string && data.audioUrl.size() <= 1000000)) &&
+             (!data.keys().hasAny(['isManual']) || data.isManual is bool) &&
+             (!data.keys().hasAny(['status']) || data.status in ['pending', 'under_review', 'action_taken', 'dismissed']);
+    }
+
+    // --- Collections ---
+
+    match /users/{userId} {
+      allow get: if isSignedIn();
+      allow create: if isOwner(userId) && isValidUser(incoming());
+      allow update: if isOwner(userId) && isValidUser(incoming()) && 
+                    incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL']);
+    }
+
+    match /reports/{reportId} {
+      // Allow individual lookups and filtered lists
+      allow read: if isSignedIn();
+      
+      // Strict creation
+      allow create: if isSignedIn() && isValidReport(incoming());
+      
+      // Admin update & delete
+      allow update, delete: if isSignedIn() && (
+        request.auth.token.email == 'kusumthakur2219@gmail.com' ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+    
+    // Testing path
+    match /test/connection {
+      allow get: if true;
+    }
+  }
+}

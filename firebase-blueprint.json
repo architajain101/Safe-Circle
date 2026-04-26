@@ -1,0 +1,53 @@
+{
+  "entities": {
+    "user": {
+      "title": "User Profile",
+      "description": "Public profile information for users",
+      "type": "object",
+      "properties": {
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["displayName"]
+    },
+    "report": {
+      "title": "Abuse Report",
+      "description": "A report submitted by a user about an abusive entity",
+      "type": "object",
+      "properties": {
+        "reporterId": { "type": "string", "description": "UID of the user who filed the report" },
+        "targetIdentifier": { "type": "string", "description": "Phone number or username being reported" },
+        "targetType": { "type": "string", "enum": ["phone", "username"] },
+        "category": { "type": "string", "description": "Type of abuse (e.g., scam, harassment, spam)" },
+        "evidenceText": { "type": "string" },
+        "evidenceImage": { "type": "string", "description": "URL or base64 of evidence image" },
+        "evidenceAudio": { "type": "string", "description": "URL or base64 of evidence audio" },
+        "riskLevel": { "type": "string", "enum": ["low", "medium", "high"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "aiAnalysis": {
+          "type": "object",
+          "properties": {
+            "type": { "type": "string" },
+            "severity": { "type": "string", "enum": ["low", "medium", "high"] },
+            "confidence": { "type": "number" },
+            "extractedText": { "type": "string" },
+            "sttResult": { "type": "string" },
+            "consistencyFlag": { "type": "string", "enum": ["consistent", "inconsistent", "verified"] }
+          }
+        }
+      },
+      "required": ["reporterId", "targetIdentifier", "targetType", "evidenceText", "createdAt"]
+    }
+  },
+  "firestore": {
+    "users/{userId}": {
+      "schema": "user",
+      "description": "User profiles"
+    },
+    "reports/{reportId}": {
+      "schema": "report",
+      "description": "Submitted abuse reports"
+    }
+  }
+}
